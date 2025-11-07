@@ -1,226 +1,541 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="et">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Liikumise ja objektide tuvastus (HTML)</title>
-  <style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial;margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px}
-    .stage{position:relative;width:100%;max-width:720px;background:#111;color:#fff;border-radius:10px;overflow:hidden}
-    video{width:100%;height:auto;display:block}
-    canvas.overlay{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
-    .controls{display:flex;gap:8px;flex-wrap:wrap}
-    button,select{padding:8px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;color:#000}
-    .status{font-size:14px}
-    .hint{font-size:13px;color:#444;max-width:720px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numbrimärgi Tuvastus Süsteem</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .camera-section, .controls-section {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+        }
+        
+        #video {
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #4a90e2;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 140px;
+        }
+        
+        button:hover {
+            background: #357ae8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        #capture-btn {
+            background: #28a745;
+        }
+        
+        #capture-btn:hover {
+            background: #218838;
+        }
+        
+        #open-gate-btn {
+            background: #dc3545;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        #open-gate-btn:hover {
+            background: #c82333;
+        }
+        
+        .status-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #dc3545;
+        }
+        
+        .status-dot.active {
+            background: #28a745;
+            box-shadow: 0 0 10px #28a745;
+        }
+        
+        .status-text {
+            font-size: 1.1rem;
+        }
+        
+        #detected-plate {
+            font-weight: bold;
+            font-size: 1.3rem;
+            color: #ffcc00;
+            margin-left: 5px;
+        }
+        
+        .gate-animation {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .gate {
+            width: 200px;
+            height: 150px;
+            margin: 0 auto;
+            position: relative;
+            perspective: 1000px;
+        }
+        
+        .gate-left, .gate-right {
+            position: absolute;
+            width: 100px;
+            height: 150px;
+            background: linear-gradient(to right, #8B4513, #A0522D, #8B4513);
+            border: 5px solid #5D4037;
+            top: 0;
+            transition: transform 2s ease;
+        }
+        
+        .gate-left {
+            left: 0;
+            border-right: 2px solid #5D4037;
+            transform-origin: left center;
+        }
+        
+        .gate-right {
+            right: 0;
+            border-left: 2px solid #5D4037;
+            transform-origin: right center;
+        }
+        
+        .gate.open .gate-left {
+            transform: rotateY(-60deg);
+        }
+        
+        .gate.open .gate-right {
+            transform: rotateY(60deg);
+        }
+        
+        .allowed-plates {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .plate-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .plate-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: monospace;
+        }
+        
+        .log-time {
+            color: #aaa;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h2>Kaamera — liikumise ja objektide tuvastus</h2>
-  <div class="stage">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="overlay" class="overlay"></canvas>
-  </div>
+    <div class="container">
+        <header>
+            <h1>Numbrimärgi Tuvastus Süsteem</h1>
+            <p class="subtitle">Kasuta oma telefoni kaamerat numbrimärkide tuvastamiseks ja värava avamiseks</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="camera-section">
+                <h2 class="section-title">Kaamera</h2>
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                
+                <div class="button-group">
+                    <button id="start-camera-btn">Käivita Kaamera</button>
+                    <button id="capture-btn" disabled>Pildista Numbrimärk</button>
+                </div>
+                
+                <div class="button-group">
+                    <button id="open-gate-btn" disabled>Ava Värav</button>
+                </div>
+            </div>
+            
+            <div class="controls-section">
+                <h2 class="section-title">Süsteemi Seaded</h2>
+                
+                <div class="status-section">
+                    <div class="status-indicator">
+                        <div class="status-dot" id="camera-status"></div>
+                        <div class="status-text">Kaamera: <span id="camera-status-text">Mitteaktiivne</span></div>
+                    </div>
+                    
+                    <div class="status-indicator">
+                        <div class="status-dot" id="detection-status"></div>
+                        <div class="status-text">Tuvastatud: <span id="detected-plate">-</span></div>
+                    </div>
+                    
+                    <div class="status-indicator">
+                        <div class="status-dot" id="gate-status"></div>
+                        <div class="status-text">Värav: <span id="gate-status-text">Suletud</span></div>
+                    </div>
+                </div>
+                
+                <div class="gate-animation">
+                    <h3>Värava Simulatsioon</h3>
+                    <div class="gate" id="gate">
+                        <div class="gate-left"></div>
+                        <div class="gate-right"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="allowed-plates">
+            <h2 class="section-title">Lubatud Numbrimärgid</h2>
+            <div class="plate-list" id="plate-list">
+                <!-- Lubatud numbrimärgid laetakse siia -->
+            </div>
+        </div>
+        
+        <div class="log">
+            <h2 class="section-title">Sündmuste Logi</h2>
+            <div id="log-entries">
+                <!-- Logi sissekanded laetakse siia -->
+            </div>
+        </div>
+    </div>
 
-  <div class="controls">
-    <button id="startBtn">Alusta</button>
-    <button id="stopBtn" disabled>Peata</button>
-    <label>Kaamera: <select id="camSelect"></select></label>
-    <label>Liikumise tundlikkus: <input id="sensitivity" type="range" min="0.5" max="10" step="0.1" value="2"> <span id="sensVal">2.0</span></label>
-  </div>
-
-  <div class="status" id="status">Staatus: ootab käivitamist</div>
-  <div class="hint">Märkus: see näidis kasutab TensorFlow.js'i ja COCO-SSD mudelit. Töötamiseks peab leht olema laaditud <strong>https</strong>-i või <strong>localhost</strong> üle. Soovitatav kasutada tagumist kaamerat ("environment") telefonis.</div>
-
-  <!-- TensorFlow.js ja COCO-SSD CDN-id -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
-
-  <script>
-    // DOM
-    const video = document.getElementById('video');
-    const overlay = document.getElementById('overlay');
-    const ctx = overlay.getContext('2d');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const statusEl = document.getElementById('status');
-    const camSelect = document.getElementById('camSelect');
-    const sensitivity = document.getElementById('sensitivity');
-    const sensVal = document.getElementById('sensVal');
-
-    let stream = null;
-    let model = null;
-    let animationId = null;
-    let prevImageData = null;
-
-    // motion detection params
-    let motionThresholdRatio = parseFloat(sensitivity.value); // lower -> more sensitive
-    sensVal.textContent = motionThresholdRatio.toFixed(1);
-
-    sensitivity.addEventListener('input', () => {
-      motionThresholdRatio = parseFloat(sensitivity.value);
-      sensVal.textContent = motionThresholdRatio.toFixed(1);
-    });
-
-    // enumerate cameras
-    async function listCameras(){
-      try{
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter(d => d.kind === 'videoinput');
-        camSelect.innerHTML = '';
-        cams.forEach((c, i) => {
-          const opt = document.createElement('option');
-          opt.value = c.deviceId;
-          opt.text = c.label || `Kaamera ${i+1}`;
-          camSelect.appendChild(opt);
+    <script>
+        // DOM elemendid
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const openGateBtn = document.getElementById('open-gate-btn');
+        const cameraStatus = document.getElementById('camera-status');
+        const cameraStatusText = document.getElementById('camera-status-text');
+        const detectionStatus = document.getElementById('detection-status');
+        const detectedPlate = document.getElementById('detected-plate');
+        const gateStatus = document.getElementById('gate-status');
+        const gateStatusText = document.getElementById('gate-status-text');
+        const gate = document.getElementById('gate');
+        const plateList = document.getElementById('plate-list');
+        const logEntries = document.getElementById('log-entries');
+        
+        // Lubatud numbrimärgid
+        const allowedPlates = ['123ABC', '789XYZ', 'TAXI123', 'EST123', 'AUTOMAAT'];
+        
+        // Tuvastatud numbrimärk
+        let detectedPlateText = '';
+        let stream = null;
+        
+        // Initsialiseeri leht
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lae lubatud numbrimärgid
+            loadAllowedPlates();
+            
+            // Lisa sündmuste kuularid
+            startCameraBtn.addEventListener('click', startCamera);
+            captureBtn.addEventListener('click', captureImage);
+            openGateBtn.addEventListener('click', openGate);
+            
+            // Lisa logi sissekanne
+            addLogEntry('Süsteem käivitatud');
         });
-      }catch(e){
-        console.warn('Ei saanud seadmeid lugeda', e);
-      }
-    }
-
-    async function startCamera(){
-      stopCamera();
-      const deviceId = camSelect.value || undefined;
-      const constraints = { video: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
-      try{
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        await video.play();
-        overlay.width = video.videoWidth;
-        overlay.height = video.videoHeight;
-        prevImageData = null;
-        status('Kaamera käivitatud. Laadin mudelit...');
-
-        if(!model){
-          // laadime COCO-SSD detektori
-          model = await cocoSsd.load();
-          status('Mudeli laaditud. Otsin liikumist ja tuvastan objekte.');
-        } else {
-          status('Mudeli juba laetud. Otsin liikumist ja tuvastan objekte.');
-        }
-
-        startLoop();
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      }catch(err){
-        console.error(err);
-        status('Viga kaamera avamisel: ' + err.message);
-      }
-    }
-
-    function stopCamera(){
-      if(animationId) cancelAnimationFrame(animationId);
-      animationId = null;
-      if(stream){
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      status('Peatatatud.');
-      ctx.clearRect(0,0,overlay.width, overlay.height);
-    }
-
-    function status(text){ statusEl.textContent = 'Staatus: ' + text; }
-
-    // lihtne liikumise tuvastus: võtame iga kaadri, teisendame halltooniks, leiame erinevuse eelmise kaadriga
-    function detectMotion(imageData){
-      if(!prevImageData){ prevImageData = imageData; return false; }
-      const w = imageData.width, h = imageData.height;
-      const curr = imageData.data;
-      const prev = prevImageData.data;
-      let diffCount = 0;
-      // sample every 4th pixel to reduce load
-      for(let i=0;i<curr.length;i+=16){
-        // RGB to gray
-        const r1 = curr[i], g1 = curr[i+1], b1 = curr[i+2];
-        const r0 = prev[i], g0 = prev[i+1], b0 = prev[i+2];
-        const gray1 = (r1+g1+b1)/3;
-        const gray0 = (r0+g0+b0)/3;
-        if(Math.abs(gray1-gray0) > 25) diffCount++;
-      }
-      prevImageData = imageData;
-      const sampledPixels = (w*h)/4; // because step 16 covers 4 pixels roughly per loop iteration
-      const ratio = diffCount / sampledPixels;
-      // adapt threshold: motionThresholdRatio values ~ 0.5..10, map to ratio threshold
-      const threshold = 0.01 * motionThresholdRatio; // empiric
-      return ratio > threshold;
-    }
-
-    async function startLoop(){
-      const off = document.createElement('canvas');
-      const offCtx = off.getContext('2d');
-      off.width = video.videoWidth;
-      off.height = video.videoHeight;
-      overlay.width = off.width;
-      overlay.height = off.height;
-
-      async function loop(){
-        if(video.paused || video.ended){ animationId = requestAnimationFrame(loop); return; }
-        // draw current frame to offscreen
-        offCtx.drawImage(video, 0, 0, off.width, off.height);
-        const imageData = offCtx.getImageData(0,0,off.width, off.height);
-        const motion = detectMotion(imageData);
-
-        // clear overlay
-        ctx.clearRect(0,0,overlay.width,overlay.height);
-
-        if(motion){
-          status('Liikumine tuvastatud — käivitan objektituvastuse');
-          try{
-            // model.detect võib võtta videoelemendi otse
-            const predictions = await model.detect(video);
-            // joonista kastid ja sildid
-            predictions.forEach(pred => {
-              const [x,y,w,h] = pred.bbox;
-              ctx.strokeStyle = 'lime';
-              ctx.lineWidth = Math.max(2, Math.round(overlay.width/400));
-              ctx.strokeRect(x,y,w,h);
-              ctx.font = `${Math.max(12, Math.round(overlay.width/50))}px sans-serif`;
-              ctx.fillStyle = 'rgba(0,0,0,0.5)';
-              const text = `${pred.class} ${(pred.score*100).toFixed(0)}%`;
-              const textW = ctx.measureText(text).width + 8;
-              const textH = parseInt(ctx.font,10) + 6;
-              ctx.fillRect(x, y - textH, textW, textH);
-              ctx.fillStyle = 'white';
-              ctx.fillText(text, x+4, y-4);
+        
+        // Lae lubatud numbrimärgid
+        function loadAllowedPlates() {
+            plateList.innerHTML = '';
+            allowedPlates.forEach(plate => {
+                const plateElement = document.createElement('div');
+                plateElement.className = 'plate-item';
+                plateElement.textContent = plate;
+                plateList.appendChild(plateElement);
             });
-            if(predictions.length===0){ status('Liikumine tuvastatud, aga objekti ei leitud.'); }
-          }catch(e){ console.error('detect error', e); status('Objektituvastuse viga: ' + (e.message||e)); }
-        } else {
-          // kui ei ole liikumist, näita kerget infot
-          status('Ootab liikumist...');
         }
-
-        animationId = requestAnimationFrame(loop);
-      }
-      loop();
-    }
-
-    // tapahtised
-    startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
-
-    camSelect.addEventListener('change', async ()=>{
-      // kui jooksvalt käib, taaskäivita uue kaameraga
-      if(stream){ await startCamera(); }
-    })
-
-    // inits
-    (async ()=>{
-      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-        status('Brauser ei toeta getUserMedia API-d. Proovi Chrome/Edge/Firefox mobiilis või töölaudadel.');
-        return;
-      }
-      await listCameras();
-      // kui on valik, püüa valida environment (tagumine)
-      for(let i=0;i<camSelect.options.length;i++){
-        const opt = camSelect.options[i];
-        if(/back|rear|environment/i.test(opt.text)) { camSelect.selectedIndex = i; break; }
-      }
-    })();
-
-  </script>
+        
+        // Käivita kaamera
+        async function startCamera() {
+            try {
+                // Küsi kaamera luba
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                
+                // Värskenda staatust
+                cameraStatus.classList.add('active');
+                cameraStatusText.textContent = 'Aktiivne';
+                captureBtn.disabled = false;
+                startCameraBtn.disabled = true;
+                
+                addLogEntry('Kaamera käivitatud');
+            } catch (error) {
+                console.error('Kaamera viga:', error);
+                addLogEntry('Kaamera viga: ' + error.message);
+                alert('Kaamera kasutamine ebaõnnestus. Palun kontrolli õiguseid.');
+            }
+        }
+        
+        // Pildista ja tuvasta numbrimärk
+        function captureImage() {
+            if (!stream) return;
+            
+            const context = canvas.getContext('2d');
+            
+            // Määra canvas suurus video suurusega
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Joonista video kaadri canvasile
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Simuleeri numbrimärgi tuvastamist
+            simulatePlateDetection();
+            
+            addLogEntry('Pildistatud ja numbrimärk analüüsitud');
+        }
+        
+        // Simuleeri numbrimärgi tuvastamist
+        function simulatePlateDetection() {
+            // Juhuslikult vali, kas tuvastame numbrimärgi
+            const detectsPlate = Math.random() > 0.3;
+            
+            if (detectsPlate) {
+                // Vali juhuslik lubatud või mittelubatud numbrimärk
+                const isAllowed = Math.random() > 0.5;
+                
+                if (isAllowed) {
+                    // Vali juhuslik lubatud numbrimärk
+                    const randomIndex = Math.floor(Math.random() * allowedPlates.length);
+                    detectedPlateText = allowedPlates[randomIndex];
+                } else {
+                    // Genereeri juhuslik mittelubatud numbrimärk
+                    detectedPlateText = generateRandomPlate();
+                }
+                
+                // Värskenda kasutajaliidest
+                detectedPlate.textContent = detectedPlateText;
+                detectionStatus.classList.add('active');
+                
+                // Kontrolli, kas numbrimärk on lubatud
+                if (allowedPlates.includes(detectedPlateText)) {
+                    openGateBtn.disabled = false;
+                    addLogEntry(`Tuvastatud lubatud numbrimärk: ${detectedPlateText}`);
+                } else {
+                    openGateBtn.disabled = true;
+                    addLogEntry(`Tuvastatud mittelubatud numbrimärk: ${detectedPlateText}`);
+                }
+            } else {
+                // Tuvastamine ebaõnnestus
+                detectedPlate.textContent = 'Ei tuvastatud';
+                detectionStatus.classList.remove('active');
+                openGateBtn.disabled = true;
+                addLogEntry('Numbrimärki ei tuvastatud');
+            }
+        }
+        
+        // Genereeri juhuslik numbrimärk
+        function generateRandomPlate() {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const numbers = '0123456789';
+            
+            let plate = '';
+            
+            // 3 tähte
+            for (let i = 0; i < 3; i++) {
+                plate += letters.charAt(Math.floor(Math.random() * letters.length));
+            }
+            
+            // 3 numbrit
+            for (let i = 0; i < 3; i++) {
+                plate += numbers.charAt(Math.floor(Math.random() * numbers.length));
+            }
+            
+            return plate;
+        }
+        
+        // Ava värav
+        function openGate() {
+            if (!detectedPlateText || !allowedPlates.includes(detectedPlateText)) {
+                alert('Lubatud numbrimärki ei tuvastatud!');
+                return;
+            }
+            
+            // Värskenda staatust
+            gateStatus.classList.add('active');
+            gateStatusText.textContent = 'Avatud';
+            gate.classList.add('open');
+            openGateBtn.disabled = true;
+            
+            addLogEntry(`Värav avatud numbrimärgile: ${detectedPlateText}`);
+            
+            // Sulge värav 5 sekundi pärast
+            setTimeout(() => {
+                gateStatus.classList.remove('active');
+                gateStatusText.textContent = 'Suletud';
+                gate.classList.remove('open');
+                addLogEntry('Värav suletud');
+            }, 5000);
+        }
+        
+        // Lisa sündmuste logi
+        function addLogEntry(message) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('et-EE');
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-time">[${timeString}]</span> ${message}`;
+            
+            logEntries.prepend(logEntry);
+            
+            // Piirata logi suurust
+            if (logEntries.children.length > 10) {
+                logEntries.removeChild(logEntries.lastChild);
+            }
+        }
+    </script>
 </body>
 </html>
